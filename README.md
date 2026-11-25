@@ -12,6 +12,12 @@ python3 -c 'import hashlib,secrets; k=secrets.token_hex(32); print("PAIR_KEY",k)
 
 ## 安装模块
 
-若使用私有 GitHub 仓库，把 `SafeKangSessionSync.sgmodule` 和 `session-sync.js` 放到自己的 HA 静态目录 `www/`，再使用手机上的 Surge 从 `/local/SafeKangSessionSync.sgmodule` 对应的网址安装。`SCRIPT_URL` 填同一台可信 HA 的 `/local/session-sync.js` 地址。`HA_URL` 只填协议、主机和端口，例如 `http://192.168.1.10:8123`。最后填 `PAIR_KEY` 并启用模块。不把配对密钥或厂商 Token 填进仓库文件。
+在手机的 Surge「模块 → 安装新模块」中使用：
+
+```text
+https://raw.githubusercontent.com/unicom2zero/surge-safekang2ha/main/SafeKangSessionSync.sgmodule
+```
+
+局域网安装也可把 `SafeKangSessionSync.sgmodule` 和 `session-sync.js` 放到自己的 HA 静态目录 `www/`，再使用手机上的 Surge 从 `/local/SafeKangSessionSync.sgmodule` 对应的网址安装。`SCRIPT_URL` 填同一台可信 HA 的 `/local/session-sync.js` 地址。`HA_URL` 只填协议、主机和端口，例如 `http://192.168.1.10:8123`。最后填 `PAIR_KEY` 并启用模块。不把配对密钥或厂商 Token 填进仓库文件。
 
 模块只允许局域网地址使用 HTTP。HTTP 模式下 Token 和配对密钥在网络中为明文，只在可信局域网使用，勿映射 Webhook 到公网。已有私有 HTTPS 时优先使用它。HA 会核对设备、拒绝错误配对，并先验证最新日报和历史报告接口后才保存新会话。相同会话会直接跳过。
