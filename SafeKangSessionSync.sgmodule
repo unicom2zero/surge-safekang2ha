@@ -1,7 +1,7 @@
 #!name=赛呼康会话同步到 HA
-#!version=1.1
+#!version=1.2
 #!desc=首次配置后，在小程序读取日报时同步本设备会话。将日报会话同步到局域网 HA。
-#!arguments=HA_URL:http://192.168.1.10:8123,PAIR_KEY:unset,SCRIPT_URL:https://raw.githubusercontent.com/unicom2zero/surge-safekang2ha/main/session-sync.js?v=2
+#!arguments=HA_URL:http://192.168.1.10:8123,PAIR_KEY:unset,SCRIPT_URL:https://raw.githubusercontent.com/unicom2zero/surge-safekang2ha/main/session-sync.js?v=3
 #!arguments-desc=HA_URL：手机可访问的 HA 局域网网址，不带路径。\nPAIR_KEY：与 HA 配对的 64 位十六进制密钥。\nSCRIPT_URL：可信来源的脚本链接。
 
 [MITM]
@@ -12,4 +12,4 @@ hostname = %APPEND% api.ventilator.safekang.com
 赛呼康会话面板 = type=generic, engine=webview, script-path={{{SCRIPT_URL}}}, argument="{{{HA_URL}}}|{{{PAIR_KEY}}}"
 
 [Panel]
-赛呼康会话同步 = title="赛呼康会话同步", content="等待小程序读取日报", style=info, script-name=赛呼康会话面板, update-interval=1
+赛呼康会话同步 = title="赛呼康会话同步", content="Token 获取：等待小程序读取日报\nHA 同步：等待获取 Token", style=info, script-name=赛呼康会话面板, update-interval=1
