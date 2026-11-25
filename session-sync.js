@@ -16,6 +16,10 @@
     502: 'HA 暂时无法验证赛呼康会话', 503: 'HA 重载集成失败',
   };
 
+  function successful(sync) {
+    return ['ok', 'unchanged', 'updated'].includes(sync);
+  }
+
   function readStatus(storeKey = statusKey) {
     try { return JSON.parse($persistentStore.read(storeKey)) || {}; }
     catch (_) { return {}; }
@@ -26,7 +30,7 @@
       const before = readStatus();
       const now = new Date().toLocaleString();
       $persistentStore.write(JSON.stringify({capture, sync, code, attempt: now,
-        success: sync === 'ok' ? now : before.success}), statusKey);
+        success: successful(sync) ? now : before.success}), statusKey);
     } catch (_) { /* Status storage must not affect the report request. */ }
   }
 
@@ -67,7 +71,11 @@
         if (response.status === 204) {
           try { $persistentStore.write(null, notifiedKey); } catch (_) { /* Optional notification state. */ }
         }
-        return done(response.status === 204 ? 'ok' : 'failed', response.status);
+        if (response.status !== 204) return done('failed', response.status);
+        const headers = response.headers || {};
+        const name = Object.keys(headers).find(field => field.toLowerCase() === 'x-safekang-sync-result');
+        const result = headers[name];
+        return done(result === 'unchanged' || result === 'updated' ? result : 'ok', response.status);
       });
     } catch (_) { done('network'); }
   }
@@ -106,7 +114,7 @@
         if (!pending) return notifyOnce();
         return deliver(url, pending, 9, (sync, code) => {
           remember('ok', sync, code);
-          return sync === 'ok' ? $done() : notifyOnce();
+          return successful(sync) ? $done() : notifyOnce();
         });
       });
     } catch (_) { return $done(); }
@@ -119,6 +127,8 @@
         ? '失败 · 读取日报请求正文失败' : '等待小程序读取日报';
     let sync = '等待获取 Token';
     if (!paired) sync = '等待配置配对密钥';
+    else if (status.sync === 'unchanged') sync = '成功 · Token 一致，无需更新';
+    else if (status.sync === 'updated') sync = '成功 · HA 已更新 Token';
     else if (status.sync === 'ok') sync = '成功 · HA 已确认会话';
     else if (status.sync === 'config') sync = '失败 · HA 地址无效，请检查模块配置';
     else if (status.sync === 'device') sync = '失败 · 日报请求缺少设备编号';
@@ -127,10 +137,10 @@
     else if (status.sync === 'failed') sync = '失败 · ' + (reasons[status.code] || 'HA 返回 HTTP ' + status.code);
     const lines = ['Token 获取：' + token, 'HA 同步：' + sync];
     if (status.attempt) lines.push('最近尝试：' + status.attempt);
-    if (status.success && status.sync !== 'ok') lines.push('上次成功：' + status.success);
+    if (status.success && !successful(status.sync)) lines.push('上次成功：' + status.success);
     const check = readStatus(checkKey);
     if (check.message) lines.push('HA 检查：' + check.message + ' · ' + check.time);
-    const style = !paired ? 'info' : check.failed ? 'alert' : status.sync === 'ok' ? 'good' :
+    const style = !paired ? 'info' : check.failed ? 'alert' : successful(status.sync) ? 'good' :
       status.sync || (status.capture && status.capture !== 'ok') ? 'alert' : 'info';
     $done({title: '赛呼康会话同步', content: lines.join('\n'), style});
   }

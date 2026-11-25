@@ -1,7 +1,7 @@
 #!name=赛呼康会话同步到 HA
-#!version=1.4
+#!version=1.5
 #!desc=首次配置后，在小程序读取日报时同步本设备会话。将日报会话同步到局域网 HA。
-#!arguments=HA_URL:http://192.168.1.10:8123,PAIR_KEY:unset,SCRIPT_URL:https://raw.githubusercontent.com/unicom2zero/surge-safekang2ha/main/session-sync.js?v=5
+#!arguments=HA_URL:http://192.168.1.10:8123,PAIR_KEY:unset,SCRIPT_URL:https://raw.githubusercontent.com/unicom2zero/surge-safekang2ha/main/session-sync.js?v=6
 #!arguments-desc=HA_URL：手机可访问的 HA 局域网网址，不带路径。\nPAIR_KEY：与 HA 配对的 64 位十六进制密钥。\nSCRIPT_URL：可信来源的脚本链接。
 
 [MITM]
