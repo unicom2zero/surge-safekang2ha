@@ -3,6 +3,7 @@
   const statusKey = 'safekang.session-sync.status.v2';
   const checkKey = 'safekang.session-sync.check.v1';
   const pendingKey = 'safekang.session-sync.pending.v1';
+  const notifiedKey = 'safekang.session-sync.auth-notified.v1';
   const [origin, key] = (typeof $argument === 'string' ? $argument : '').split('|');
   const paired = /^[0-9a-f]{64}$/.test(key);
   const endpoint = /^https:\/\/api\.ventilator\.safekang\.com\/client\/1\/device-data\/(?:last-data|list)(?:\?[^#]*)?$/;
@@ -63,9 +64,52 @@
             if (readStatus(pendingKey).seen === pending.seen) $persistentStore.write(null, pendingKey);
           } catch (_) { /* Ignore local state write failures. */ }
         }
+        if (response.status === 204) {
+          try { $persistentStore.write(null, notifiedKey); } catch (_) { /* Optional notification state. */ }
+        }
         return done(response.status === 204 ? 'ok' : 'failed', response.status);
       });
     } catch (_) { done('network'); }
+  }
+
+  function recentPending() {
+    const pending = readStatus(pendingKey);
+    if (pending.token && Date.now() - pending.seen < 10 * 60 * 1000) return pending;
+    if (pending.token) {
+      try { $persistentStore.write(null, pendingKey); } catch (_) { /* Ignore local cleanup failures. */ }
+    }
+    return null;
+  }
+
+  function scheduleCheck() {
+    const pending = recentPending();
+    if (!paired) return $done();
+    function notifyOnce() {
+      try {
+        if (!$persistentStore.read(notifiedKey)) {
+          $notification.post('赛呼康会话失效', '需要打开小程序', '进入赛呼康日报后，Surge 会把新会话自动同步到 HA。');
+          $persistentStore.write('1', notifiedKey);
+        }
+      } finally { $done(); }
+    }
+    let url;
+    try { url = webhookURL(); }
+    catch (_) { return $done(); }
+    try {
+      return post(url, {action: 'status'}, 3, (error, response) => {
+        if (error || !response) return $done();
+        if (response.status === 204) {
+          try { $persistentStore.write(null, notifiedKey); } catch (_) { /* Optional notification state. */ }
+          return $done();
+        }
+        if (response.status !== 422) return $done();
+        if (!pending) return notifyOnce();
+        return deliver(url, pending, 9, (sync, code) => {
+          remember('ok', sync, code);
+          return sync === 'ok' ? $done() : notifyOnce();
+        });
+      });
+    } catch (_) { return $done(); }
   }
 
   function panel() {
@@ -101,15 +145,12 @@
     let url;
     try { url = webhookURL(); }
     catch (_) { return complete('失败 · HA 地址无效', true); }
-    const pending = readStatus(pendingKey);
-    if (pending.token && Date.now() - pending.seen < 10 * 60 * 1000) {
+    const pending = recentPending();
+    if (pending) {
       return deliver(url, pending, 9, (sync, code) => {
         remember('ok', sync, code);
         return panel();
       });
-    }
-    if (pending.token) {
-      try { $persistentStore.write(null, pendingKey); } catch (_) { /* Ignore local cleanup failures. */ }
     }
     try {
       return post(url, {action: 'check'}, 9, (error, response) => {
@@ -120,6 +161,7 @@
     } catch (_) { return complete('失败 · 连不上 HA', true); }
   }
 
+  if (typeof $script !== 'undefined' && $script.type === 'cron') return scheduleCheck();
   if ((typeof $script !== 'undefined' && $script.type === 'generic') || typeof $request === 'undefined') {
     return typeof $trigger !== 'undefined' && $trigger === 'button' ? manualCheck() : panel();
   }

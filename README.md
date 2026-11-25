@@ -4,7 +4,7 @@ Surge 在赛呼康小程序请求最新日报时，把已签发的会话交给�
 
 ## 准备 HA
 
-需要支持 `safekang-session-sync` Webhook 的赛呼康 HA 集成（1.2.0 或以上）。在可信的终端执行以下命令，生成专用配对密钥及其 SHA-256。密钥只填在 Surge，SHA-256 填在 HA「赛呼康呼吸机 → 重新配置」，原有 Token 和设备编号继续使用。清空 SHA-256 即关闭接收。
+需要支持 `safekang-session-sync` Webhook 的赛呼康 HA 集成（1.2.2 或以上，支持手动和定时检查）。在可信的终端执行以下命令，生成专用配对密钥及其 SHA-256。密钥只填在 Surge，SHA-256 填在 HA「赛呼康呼吸机 → 重新配置」，原有 Token 和设备编号继续使用。清空 SHA-256 即关闭接收。
 
 ```sh
 python3 -c 'import hashlib,secrets; k=secrets.token_hex(32); print("PAIR_KEY",k); print("HA SHA-256",hashlib.sha256(k.encode()).hexdigest())'
@@ -25,3 +25,7 @@ https://raw.githubusercontent.com/unicom2zero/surge-safekang2ha/main/SafeKangSes
 ## 查看状态
 
 启用模块后，Surge iOS「代理 → 策略组」里显示「赛呼康会话同步」。面板始终分别显示「Token 获取」和「HA 同步」，失败会注明原因；还会显示最近尝试时间，以及遇到失败时上次成功的时间。右侧刷新按钮会实际执行一次：优先重试刚捕获但还未确认的会话；没有待同步会话时，使用 HA 已保存的会话检查最新日报和历史日报。自动刷新只读取本地状态。出现「HA 已确认会话」表示 HA 已接受新会话或当前会话已经一致。面板不展示 Token 和配对密钥。待同步会话在手机 Surge 本地短暂保留，10 分钟内可重试；成功、被赛呼康明确拒绝，或下一次手动刷新发现已超时时清除。
+
+## 定时检查
+
+模块每 15 分钟在 Surge 允许运行时读取 HA 已有的报告同步状态，不增加赛呼康云端查询。发现会话认证失败时优先重试尚未确认的新会话。手机没有新会话时，同一次故障只提醒一次打开小程序。
