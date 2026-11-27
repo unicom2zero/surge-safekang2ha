@@ -45,11 +45,11 @@
         || (url.protocol !== 'https:' && (url.protocol !== 'http:' || !privateAddress.test(url.hostname)))) {
       throw new Error('Invalid HA address');
     }
-    return url.origin + '/api/webhook/safekang-session-sync';
+    return url.origin + '/api/webhook/surge-sync';
   }
 
   function post(url, body, timeout, callback) {
-    $httpClient.post({url, headers: {'Content-Type': 'application/json', 'X-SafeKang-Pairing-Key': key},
+    $httpClient.post({url, headers: {'Content-Type': 'application/json', 'X-Surge-Module': 'safekang', 'X-SafeKang-Pairing-Key': key},
       body: JSON.stringify(body), timeout, 'auto-cookie': false, 'auto-redirect': false}, callback);
   }
 
